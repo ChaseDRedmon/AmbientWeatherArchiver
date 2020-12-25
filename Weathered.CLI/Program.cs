@@ -13,7 +13,26 @@ namespace Weathered
 {
     class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
+        {
+            // Sample code. CLI will go here eventually
+            var serviceProvider = BuildDI();
+            
+            var logger = serviceProvider.GetService<ILogger>();
+            logger.Verbose("Starting application");
+
+            // do the actual work here
+            //var bar = serviceProvider.GetService<IBarService>();
+            //bar.DoSomeRealWork();
+
+            logger.Verbose("All done!");
+
+            Console.ReadKey();
+            
+            // Note that the CLI portion doesn't actually do anything 
+        }
+
+        private static void BuildLogger()
         {
             // Add the connections.json file to the configuration builder
             var config = new ConfigurationBuilder()
@@ -54,24 +73,16 @@ namespace Weathered
             
             // Create our Serilog logger
             Log.Logger = loggerConfig.CreateLogger();
-            
+        }
+
+        private static ServiceProvider BuildDI()
+        {
             // setup our DI
-            var serviceProvider = new ServiceCollection()
+            return new ServiceCollection()
                 .AddSingleton(Log.Logger)
                 .AddSingleton<IAmbientWeatherRestService, AmbientWeatherRestService>()
                 .AddTransient<IWeatheredConfigurationValidator, WeatheredConfigurationValidator>()
                 .BuildServiceProvider();
-
-            var logger = serviceProvider.GetService<ILogger>();
-            logger.Verbose("Starting application");
-
-            // do the actual work here
-            //var bar = serviceProvider.GetService<IBarService>();
-            //bar.DoSomeRealWork();
-
-            logger.Verbose("All done!");
-
-            Console.ReadKey();
         }
     }
 }
