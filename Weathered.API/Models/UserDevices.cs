@@ -1,99 +1,99 @@
 ﻿using System;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace Weathered.API.Models
 {
     // Root myDeserializedClass = JsonSerializer.Deserialize<Root>(myJsonResponse);
     public class Info
     {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } 
+        [JsonProperty("name")]
+        public string? Name { get; set; } 
 
-        [JsonPropertyName("location")]
-        public string Location { get; set; } 
+        [JsonProperty("location")]
+        public string? Location { get; set; } 
     }
 
     public class LastData
     {
-        [JsonPropertyName("dateutc")]
-        public long EpochMilliseconds { get; set; } 
+        [JsonProperty("dateutc")]
+        public long? EpochMilliseconds { get; set; } 
 
-        [JsonPropertyName("date")]
-        public DateTime Date { get; set; } 
+        [JsonProperty("date")]
+        public DateTimeOffset? UtcDate { get; set; } 
 
-        [JsonPropertyName("winddir")]
-        public int WindDirection { get; set; } 
+        [JsonProperty("winddir")]
+        public int? WindDirection { get; set; } 
 
-        [JsonPropertyName("windspeedmph")]
-        public double WindSpeedMph { get; set; } 
+        [JsonProperty("windspeedmph")]
+        public float? WindSpeedMph { get; set; } 
 
-        [JsonPropertyName("windgustmph")]
-        public double WindGustMph { get; set; } 
+        [JsonProperty("windgustmph")]
+        public float? WindGustMph { get; set; } 
 
-        [JsonPropertyName("maxdailygust")]
-        public double MaxDailyGust { get; set; } 
+        [JsonProperty("maxdailygust")]
+        public float? MaxDailyGust { get; set; } 
 
-        [JsonPropertyName("windgustdir")]
-        public int WindGustDir { get; set; } 
+        [JsonProperty("windgustdir")]
+        public int? WindGustDir { get; set; } 
         
-        [JsonPropertyName("windspdmph_avg2m")]
-        public double WindSpeedMph2MinuteAverage { get; set; } 
+        [JsonProperty("windspdmph_avg2m")]
+        public float? WindSpeedMph2MinuteAverage { get; set; } 
 
-        [JsonPropertyName("winddir_avg2m")]
-        public int WindDirection2MinuteAverage { get; set; }
+        [JsonProperty("winddir_avg2m")]
+        public int? WindDirection2MinuteAverage { get; set; }
         
-        [JsonPropertyName("windspdmph_avg10m")]
-        public double WindSpeedMph10MinuteAverage { get; set; } 
+        [JsonProperty("windspdmph_avg10m")]
+        public float? WindSpeedMph10MinuteAverage { get; set; } 
 
-        [JsonPropertyName("winddir_avg10m")]
-        public int WindDirection10MinuteAverage { get; set; } 
+        [JsonProperty("winddir_avg10m")]
+        public int? WindDirection10MinuteAverage { get; set; } 
 
-        [JsonPropertyName("tempf")]
-        public double OutdoorTemperatureFahrenheit { get; set; } 
+        [JsonProperty("tempf")]
+        public float? OutdoorTemperatureFahrenheit { get; set; } 
 
-        [JsonPropertyName("humidity")]
-        public int OutdoorHumidity { get; set; } 
+        [JsonProperty("humidity")]
+        public int? OutdoorHumidity { get; set; } 
 
-        [JsonPropertyName("baromrelin")]
-        public double RelativeBarometricPressure { get; set; } 
+        [JsonProperty("baromrelin")]
+        public float? RelativeBarometricPressure { get; set; } 
 
-        [JsonPropertyName("baromabsin")]
-        public double AbsoluteBarometricPressure { get; set; } 
+        [JsonProperty("baromabsin")]
+        public float? AbsoluteBarometricPressure { get; set; } 
 
-        [JsonPropertyName("tempinf")]
-        public double IndoorTemperatureFahrenheit { get; set; } 
+        [JsonProperty("tempinf")]
+        public float? IndoorTemperatureFahrenheit { get; set; } 
 
-        [JsonPropertyName("humidityin")]
-        public int IndoorHumidity { get; set; } 
+        [JsonProperty("humidityin")]
+        public int? IndoorHumidity { get; set; } 
 
-        [JsonPropertyName("hourlyrainin")]
-        public int HourlyRainfall { get; set; } 
+        [JsonProperty("hourlyrainin")]
+        public int? HourlyRainfall { get; set; } 
 
-        [JsonPropertyName("dailyrainin")]
-        public int DailyRainfall { get; set; } 
+        [JsonProperty("dailyrainin")]
+        public int? DailyRainfall { get; set; } 
 
-        [JsonPropertyName("monthlyrainin")]
-        public int MonthlyRainfall { get; set; } 
+        [JsonProperty("monthlyrainin")]
+        public int? MonthlyRainfall { get; set; } 
 
-        [JsonPropertyName("yearlyrainin")]
-        public int YearlyRainfall { get; set; } 
+        [JsonProperty("yearlyrainin")]
+        public int? YearlyRainfall { get; set; } 
 
-        [JsonPropertyName("feelsLike")]
-        public double FeelsLike { get; set; } 
+        [JsonProperty("feelsLike")]
+        public float? OutdoorFeelsLikeTemperatureFahrenheit { get; set; } 
 
-        [JsonPropertyName("dewPoint")]
-        public double DewPoint { get; set; } 
+        [JsonProperty("dewPoint")]
+        public float? DewPointFahrenheit { get; set; } 
     }
 
     public class UserDevice
     {
-        [JsonPropertyName("macAddress")]
-        public string MacAddress { get; set; } 
+        [JsonProperty("macAddress")]
+        public string? MacAddress { get; set; } 
 
-        [JsonPropertyName("info")]
+        [JsonProperty("info")]
         public Info Info { get; set; } 
 
-        [JsonPropertyName("lastData")]
+        [JsonProperty("lastData")]
         public LastData LastData { get; set; } 
     }
 }

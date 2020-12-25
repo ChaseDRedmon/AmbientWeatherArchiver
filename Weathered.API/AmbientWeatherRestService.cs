@@ -1,7 +1,11 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Net.Http;
-using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
+using Serilog;
 using Weathered.API.Models;
 
 namespace Weathered.API
@@ -15,36 +19,38 @@ namespace Weathered.API
         /// <param name="applicationKey">Account Application Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="apiKey">Account API Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="endDate">Date for Last Data Entry. Results will end here and cascade backwards through time.</param>
+        /// <param name="cancellationToken">Cancellation Token. <see cref="CancellationToken"/></param>
         /// <param name="limit">The amount of items to return. Default is 288. Items are in 5 minute increments, meaning 288 items is 1 day's worth of data.</param>
         /// <returns>Returns a <see cref="Device"/> object.</returns>
-        Task<Device> FetchDeviceDataAsync(string macAddress, string apiKey, string applicationKey, DateTimeOffset? endDate, int limit = 288);
+        Task<IEnumerable<Device>> FetchDeviceDataAsync(string macAddress, string apiKey, string applicationKey, DateTimeOffset? endDate, CancellationToken cancellationToken, int limit = 288);
         
         /// <summary>
         /// Fetch a list of devices under the user's account and the most recent weather data
         /// </summary>
         /// <param name="applicationKey">Account Application Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="apiKey">Account API Key. Found Here: https://ambientweather.net/account</param>
+        /// <param name="cancellationToken">Cancellation Token. <see cref="CancellationToken"/></param>
         /// <returns>Returns a <see cref="Device"/> object.</returns>
-        Task<UserDevice> FetchUserDevicesAsync(string apiKey, string applicationKey);
+        Task<UserDevice> FetchUserDevicesAsync(string apiKey, string applicationKey, CancellationToken cancellationToken);
     }
 
     public class AmbientWeatherRestService : IAmbientWeatherRestService
     {
         private readonly HttpClient _client = new HttpClient();
-        private Uri _baseAddress { get; set; }
+        private Uri BaseAddress { get; set; }
 
         /// <summary>
         /// Creates a new <see cref="AmbientWeatherRestService"/> and initializes the base address for the Ambient Weather API
         /// </summary>
-        private AmbientWeatherRestService()
+        public AmbientWeatherRestService()
         {
             // Base Address for the Ambient Weather API
-            _baseAddress = new Uri("https://api.ambientweather.net/");
+            BaseAddress = new Uri("https://api.ambientweather.net/");
         }
 
         /// <inheritdoc cref="FetchDeviceDataAsync"/>
-        public async Task<Device> FetchDeviceDataAsync(string macAddress, string apiKey, string applicationKey,
-            DateTimeOffset? endDate, int limit = 288)
+        public async Task<IEnumerable<Device>> FetchDeviceDataAsync(string macAddress, string apiKey, string applicationKey,
+            DateTimeOffset? endDate, CancellationToken cancellationToken, int limit = 288)
         {
             // Check to see if all parameters have a non-null, non-blank/whitespace value
             if (string.IsNullOrWhiteSpace(macAddress))
@@ -55,19 +61,20 @@ namespace Weathered.API
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(applicationKey));
 
             // Build our query
-            var path = $"v1/devices/{macAddress}?apiKey={apiKey}&applicationKey={applicationKey}&limit={limit}";
+            var path = $"v1/devices/{macAddress}";
+            var query = $"?apiKey={apiKey}&applicationKey={applicationKey}&limit={limit}";
 
             // Query the Ambient Weather API
-            var json = await QueryAmbientWeatherApiAsync(path);
+            var json = await QueryAmbientWeatherApiAsync(path, query, cancellationToken);
             
             // Deserialize the JSON that's returned from the API
-            var data = JsonSerializer.Deserialize<Device>(json);
+            var data = JsonConvert.DeserializeObject<IEnumerable<Device>>(json);
 
             return data;
         }
         
         /// <inheritdoc cref="FetchUserDevicesAsync"/>
-        public async Task<UserDevice> FetchUserDevicesAsync(string applicationKey, string apiKey)
+        public async Task<UserDevice> FetchUserDevicesAsync(string applicationKey, string apiKey, CancellationToken cancellationToken)
         {
             // Check to see if all parameters have a non-null, non-blank/whitespace value
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -76,40 +83,43 @@ namespace Weathered.API
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(applicationKey));
 
             // Build our query
-            var path = $"v1/devices?applicationKey={applicationKey}&apiKey={apiKey}";
+            const string path = "v1/devices";
+            var query = $"?applicationKey={applicationKey}&apiKey={apiKey}";
             
             // Query the Ambient Weather API
-            var json = await QueryAmbientWeatherApiAsync(path);
+            var json = await QueryAmbientWeatherApiAsync(path, query, cancellationToken);
             
             // Deserialize the JSON that's returned from the API
-            var data = JsonSerializer.Deserialize<UserDevice>(json);
+            var data = JsonConvert.DeserializeObject<UserDevice>(json);
 
             return data;
         }
 
         /// <summary>
-        /// 
+        /// Submits a request to the Ambient Weather API
         /// </summary>
-        /// <param name="path"></param>
-        /// <returns></returns>
+        /// <param name="path">API Path: "v1/devices"</param>
+        /// <param name="query">API Query</param>
+        /// <param name="cancellationToken"></param>
+        /// <returns>Returns a JSON string</returns>
         /// <exception cref="ArgumentNullException"></exception>
-        private async Task<string> QueryAmbientWeatherApiAsync(string path)
+        private async Task<string> QueryAmbientWeatherApiAsync(string path, string query, CancellationToken cancellationToken)
         {
-            // Check to see if all parameters have a non-null, non-blank/whitespace value
-            if (string.IsNullOrWhiteSpace(path))
-                throw new ArgumentException("Value cannot be null or whitespace.", nameof(path));
-
             // Build the full API Uri
             var builder = new UriBuilder
             {
-                Scheme = _baseAddress.Scheme, 
-                Host = _baseAddress.Host, 
-                Path = path
+                Scheme = BaseAddress.Scheme, 
+                Host = BaseAddress.Host, 
+                Path = path,
+                Query = query
             };
 
+            var request = new HttpRequestMessage(HttpMethod.Get, builder.Uri);
+            request.Headers.TryAddWithoutValidation("Content-Type", "application/json");
+
             // Get and return a JSON string from the Ambient Weather API
-            var response = await _client.GetStringAsync(builder.Uri);
-            return response;
+            var response = await _client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+            return await response.Content.ReadAsStringAsync(cancellationToken);
         }
     }
 }

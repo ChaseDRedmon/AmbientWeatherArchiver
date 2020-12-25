@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -13,22 +15,31 @@ namespace Weathered
 {
     class Program
     {
-        public static void Main(string[] args)
+        public static async Task<int> Main(string[] args)
         {
             // Sample code. CLI will go here eventually
             var serviceProvider = BuildDI();
             
-            var logger = serviceProvider.GetService<ILogger>();
-            logger.Verbose("Starting application");
+            Log.Verbose("Starting application");
 
             // do the actual work here
-            //var bar = serviceProvider.GetService<IBarService>();
-            //bar.DoSomeRealWork();
+            var bar = serviceProvider.GetService<IAmbientWeatherRestService>();
+            var result = await bar.FetchDeviceDataAsync
+            (
+                "", 
+                "", 
+                "",
+                null,
+                CancellationToken.None,
+                2
+            );
 
-            logger.Verbose("All done!");
+            Log.Verbose("All done!");
 
             Console.ReadKey();
-            
+
+            return 0;
+
             // Note that the CLI portion doesn't actually do anything 
         }
 
@@ -79,9 +90,7 @@ namespace Weathered
         {
             // setup our DI
             return new ServiceCollection()
-                .AddSingleton(Log.Logger)
                 .AddSingleton<IAmbientWeatherRestService, AmbientWeatherRestService>()
-                .AddTransient<IWeatheredConfigurationValidator, WeatheredConfigurationValidator>()
                 .BuildServiceProvider();
         }
     }
