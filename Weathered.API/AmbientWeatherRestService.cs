@@ -25,13 +25,13 @@ namespace Weathered.API
         Task<IEnumerable<Device>> FetchDeviceDataAsync(string macAddress, string apiKey, string applicationKey, DateTimeOffset? endDate, CancellationToken cancellationToken, int limit = 288);
         
         /// <summary>
-        /// Fetch a list of devices under the user's account and the most recent weather data
+        /// Fetch a list of devices under the user's account and the most recent weather data for each device
         /// </summary>
         /// <param name="applicationKey">Account Application Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="apiKey">Account API Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="cancellationToken">Cancellation Token. <see cref="CancellationToken"/></param>
         /// <returns>Returns a <see cref="Device"/> object.</returns>
-        Task<UserDevice> FetchUserDevicesAsync(string apiKey, string applicationKey, CancellationToken cancellationToken);
+        Task<IEnumerable<UserDevice>> FetchUserDevicesAsync(string apiKey, string applicationKey, CancellationToken cancellationToken);
     }
 
     public class AmbientWeatherRestService : IAmbientWeatherRestService
@@ -74,7 +74,7 @@ namespace Weathered.API
         }
         
         /// <inheritdoc cref="FetchUserDevicesAsync"/>
-        public async Task<UserDevice> FetchUserDevicesAsync(string applicationKey, string apiKey, CancellationToken cancellationToken)
+        public async Task<IEnumerable<UserDevice>> FetchUserDevicesAsync(string applicationKey, string apiKey, CancellationToken cancellationToken)
         {
             // Check to see if all parameters have a non-null, non-blank/whitespace value
             if (string.IsNullOrWhiteSpace(apiKey))
@@ -90,7 +90,7 @@ namespace Weathered.API
             var json = await QueryAmbientWeatherApiAsync(path, query, cancellationToken);
             
             // Deserialize the JSON that's returned from the API
-            var data = JsonConvert.DeserializeObject<UserDevice>(json);
+            var data = JsonConvert.DeserializeObject<IEnumerable<UserDevice>>(json);
 
             return data;
         }
@@ -119,7 +119,7 @@ namespace Weathered.API
 
             // Get and return a JSON string from the Ambient Weather API
             var response = await _client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
-            return await response.Content.ReadAsStringAsync(cancellationToken);
+            return await response.Content.ReadAsStringAsync();
         }
     }
 }
