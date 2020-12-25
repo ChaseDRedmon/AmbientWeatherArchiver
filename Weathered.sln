@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weathered.CLI", "Weathered.CLI\Weathered.CLI.csproj", "{12A980BC-9035-46AB-A739-57A88D3D6803}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{10AC7B8D-D884-4D6C-BB6D-8E26DEE77ED4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Weathered.API", "Weathered.API\Weathered.API.csproj", "{638C5B8A-9FB4-46F9-8FD7-8188AC82CC8F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{12A980BC-9035-46AB-A739-57A88D3D6803}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{12A980BC-9035-46AB-A739-57A88D3D6803}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{12A980BC-9035-46AB-A739-57A88D3D6803}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{12A980BC-9035-46AB-A739-57A88D3D6803}.Release|Any CPU.Build.0 = Release|Any CPU
+		{638C5B8A-9FB4-46F9-8FD7-8188AC82CC8F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{638C5B8A-9FB4-46F9-8FD7-8188AC82CC8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{638C5B8A-9FB4-46F9-8FD7-8188AC82CC8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{638C5B8A-9FB4-46F9-8FD7-8188AC82CC8F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{12A980BC-9035-46AB-A739-57A88D3D6803} = {10AC7B8D-D884-4D6C-BB6D-8E26DEE77ED4}
+		{638C5B8A-9FB4-46F9-8FD7-8188AC82CC8F} = {10AC7B8D-D884-4D6C-BB6D-8E26DEE77ED4}
+	EndGlobalSection
+EndGlobal
