@@ -104,7 +104,14 @@ namespace Weathered.API
 
             // Build our query
             var path = $"v1/devices/{macAddress}";
-            var query = $"?apiKey={apiKey}&applicationKey={applicationKey}&limit={limit}";
+            var query = $"?apiKey={apiKey}&applicationKey={applicationKey}";
+
+            if (endDate.HasValue)
+            {
+                query += endDate.Value.ToUniversalTime().ToUnixTimeMilliseconds().ToString();
+            }
+
+            query += $"&limit={limit.ToString()}";
 
             // Query the Ambient Weather API
             var json = await QueryAmbientWeatherApiAsync(path, query, cancellationToken);
@@ -155,7 +162,7 @@ namespace Weathered.API
         /// <param name="query">API Query</param>
         /// <param name="cancellationToken"></param>
         /// <returns>Returns a JSON string</returns>
-        /// <exception cref="ArgumentNullException"></exception>
+        /// Throws <exception cref="ArgumentNullException"> if path or query are null</exception>
         private async Task<string> QueryAmbientWeatherApiAsync(string path, string query, CancellationToken cancellationToken)
         {
             // Build the full API Uri

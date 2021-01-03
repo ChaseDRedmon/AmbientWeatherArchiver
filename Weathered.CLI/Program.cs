@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,17 +17,68 @@ namespace Weathered
 {
     class Program
     {
-        public static async Task<int> Main(string[] args)
+        /// <param name="queryWeatherStation">Flag to query a weather station. Requires weather station MAC Address, API Key, and Application Key</param>
+        /// <param name="queryUsersAccount">Flag to query the user's devices. Requires API Key and Application Key</param>
+        /// <param name="macAddress">MAC Address String</param>
+        /// <param name="apiKey">API Key</param>
+        /// <param name="applicationKey">Application Key</param>
+        /// <param name="endEpoch"></param>
+        /// <param name="writeLogsToFile">Path to write application logs to a file</param>
+        /// <param name="endDate"></param>
+        public static async Task<int> Main(
+            bool queryWeatherStation = false, 
+            bool queryUsersAccount = false, 
+            string? macAddress = null, 
+            string? apiKey = null, 
+            string? applicationKey = null,
+            DateTimeOffset? endDate = null,
+            long? endEpoch = null,
+            string? writeLogsToFile = null)
         {
+            BuildLogger();
+            Log.Verbose("Starting application");
+            
             // Sample code. CLI will go here eventually
             var serviceProvider = BuildDI();
-            BuildLogger();
+
+            if (!queryWeatherStation && string.IsNullOrWhiteSpace(macAddress))
+            {
+                Log.Warning("MAC Address was not specified.");
+            }
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                Log.Warning(new ArgumentException("Value cannot be null or whitespace.", nameof(apiKey)),
+                    "API Key was not specified");
+                
+                Console.WriteLine();
+                
+                while (string.IsNullOrWhiteSpace(apiKey))
+                {
+                    Console.Write("Provide an API Key: ");
+                    apiKey = Console.ReadLine();
+                }
+            }
             
-            Log.Verbose("Starting application");
+            Console.WriteLine();
+
+            if (string.IsNullOrWhiteSpace(applicationKey))
+            {
+                Log.Warning(new ArgumentException("Value cannot be null or whitespace.", nameof(applicationKey)),
+                    "Application Key was not specified");
+                
+                Console.WriteLine();
+                
+                while (string.IsNullOrWhiteSpace(applicationKey))
+                {
+                    Console.Write("Provide an Application Key: ");
+                    applicationKey = Console.ReadLine();
+                }
+            }
 
             // do the actual work here
             //var bar = serviceProvider.GetService<IAmbientWeatherRestService>();
-            /*var result = await bar.FetchDeviceDataAsync
+            /* var result = await bar.FetchDeviceDataAsync
             (
                 "", 
                 "", 
@@ -34,111 +86,10 @@ namespace Weathered
                 null,
                 CancellationToken.None,
                 2
-            );*/
+            ); */
 
             Log.Verbose("All done!");
-
-            var rootCommand = new RootCommand
-            {
-                new Option<bool>(new[] {"--devices", "-d"}, () => false, "Fetch data from the Ambient Weather Device API. Requires Device Mac Address") { Argument = new Argument<bool>(), IsRequired = false},
-                new Option<bool>(new[] {"--user", "-u"}, () => false, "Fetch a list of the user's devices, along with the latest data reported by each device") { Argument = new Argument<bool>(), IsRequired = false},
-                new Option<string?>(new[] {"--mac-address", "-m"}, () => null, "Fetch data from the Ambient Weather Device API. Requires Device Mac Address") { Argument = new Argument<string?>(), IsRequired = false},
-                new Option<string?>(new[] {"--api-key", "-api"}, () => null, "Ambient Weather API Key") { Argument = new Argument<string?>(), IsRequired = false},
-                new Option<string?>(new[] {"--application-key", "-app"}, () => null, "Ambient Weather Application Key") { Argument = new Argument<string?>(), IsRequired = false }, 
-                new Option<string?>(new[] {"--log-file"}, () => null, "Write logs to file") { Argument = new Argument<string?>(), IsRequired = false },
-            };
             
-            rootCommand.Description = "Weathered CLI for Ambient Weather API";
-            
-            rootCommand.Handler = CommandHandler.Create<bool, bool, string?, string?, string?, string?>(async (devices, user, macAddress, apiKey, applicationKey, logFile) =>
-            {
-                while (!devices && !user)
-                {
-                    Console.WriteLine();
-                    Log.Warning("API Selection Flag not specified. Please select \"--devices\" to query a device's data or \"--user\" to query a list of devices associated with your account");
-                    
-                    Console.Write("Do you wanted to enable the \"--device\" flag? (Y/n): ");
-                    var deviceResult = Console.ReadLine();
-
-                    if (string.IsNullOrWhiteSpace(deviceResult) || deviceResult.ToLower() is "y")
-                    {
-                        devices = true;
-                    }
-                    else if (deviceResult.ToLower() is not "n")
-                    {
-                        Log.Warning("Invalid Input" + Environment.NewLine);
-                        continue;
-                    }
-
-                    Console.Write("Do you wanted to enable the \"--user\" flag? (Y/n): ");
-                    var userResult = Console.ReadLine();
-
-                    if (string.IsNullOrWhiteSpace(userResult) || userResult.ToLower() is "y")
-                    {
-                        user = true;
-                    }
-                    else if (userResult.ToLower() is not "n")
-                    {
-                        Log.Warning("Invalid Input" + Environment.NewLine);
-                        continue;
-                    }
-                }
-
-                if (devices && string.IsNullOrWhiteSpace(macAddress))
-                {
-                    Console.WriteLine();
-                    Log.Warning("Weather Station MAC Address not specified. Weather Station querying is disabled.");
-                    
-                    devices = false;
-
-                    while (string.IsNullOrWhiteSpace(macAddress))
-                    {
-                        Console.Write("Please specify a MAC address to re-enable weather station querying: ");
-                        var userResult = Console.ReadLine();
-                        
-                        if (string.IsNullOrWhiteSpace(userResult))
-                        {
-                            continue;
-                        }
-
-                        break;
-                    }
-
-                    devices = true;
-                }
-
-                if (string.IsNullOrWhiteSpace(apiKey))
-                {
-                    Console.WriteLine();
-                    Log.Warning("API Key not specified and is required.");
-                    
-                    while (string.IsNullOrWhiteSpace(apiKey))
-                    {
-                        Console.Write("Provide an API Key: ");
-                        apiKey = Console.ReadLine();
-                    }
-                }
-
-                if (string.IsNullOrWhiteSpace(applicationKey))
-                {
-                    Console.WriteLine();
-                    Log.Warning("Application Key not specified and is required.");
-                    
-                    while (string.IsNullOrWhiteSpace(applicationKey))
-                    {
-                        Console.Write("Provide an Application Key: ");
-                        applicationKey = Console.ReadLine();
-                    }
-                }
-
-                Console.WriteLine();
-                Log.Debug("Executing query...");
-                
-                // await Run(devices!, user!, splitChannels, combine);
-            });
-            
-            await rootCommand.InvokeAsync(args);
-
             Console.ReadKey();
 
             return 0;
