@@ -12,6 +12,9 @@ using Weathered.API;
 using Weathered.API.Models;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using Microsoft.EntityFrameworkCore;
+using Weathered.API.Rest;
+using Weathered.Data;
 
 namespace Weathered
 {
@@ -35,11 +38,8 @@ namespace Weathered
             long? endEpoch = null,
             string? writeLogsToFile = null)
         {
-            BuildLogger();
+            var provider = SetupApplication();
             Log.Verbose("Starting application");
-            
-            // Sample code. CLI will go here eventually
-            var serviceProvider = BuildDI();
 
             if (!queryWeatherStation && string.IsNullOrWhiteSpace(macAddress))
             {
@@ -97,7 +97,7 @@ namespace Weathered
             // Note that the CLI portion doesn't actually do anything 
         }
 
-        private static void BuildLogger()
+        private static ServiceProvider SetupApplication()
         {
             // Add the connections.json file to the configuration builder
             var config = new ConfigurationBuilder()
@@ -138,14 +138,18 @@ namespace Weathered
             
             // Create our Serilog logger
             Log.Logger = loggerConfig.CreateLogger();
-        }
-
-        private static ServiceProvider BuildDI()
-        {
+            
             // setup our DI
-            return new ServiceCollection()
-                .AddSingleton<IAmbientWeatherRestService, AmbientWeatherRestService>()
-                .BuildServiceProvider();
+            var services = new ServiceCollection()
+                .AddSingleton<IAmbientWeatherRestService, AmbientWeatherRestService>();
+            
+            // Create our database service context and tell the application to use SQL Server 
+            services.AddDbContext<WeatheredContext>(options =>
+            {
+                options.UseNpgsql(config.GetValue<string>(nameof(WeatheredConfig.DbConnection)));
+            });
+                
+            return services.BuildServiceProvider();
         }
     }
 }

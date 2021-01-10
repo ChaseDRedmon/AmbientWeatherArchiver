@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
-using Serilog;
 using Weathered.API.Models;
 
-namespace Weathered.API
+namespace Weathered.API.Rest
 {
     public interface IAmbientWeatherRestService
     {
@@ -20,7 +19,7 @@ namespace Weathered.API
         /// <param name="apiKey">Account API Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="endDate">Date for Last Data Entry. Results will end here and cascade backwards through time.</param>
         /// <param name="cancellationToken">Cancellation Token. <see cref="CancellationToken"/></param>
-        /// <param name="limit">The amount of items to return. Default is 288. Items are in 5 minute increments, meaning 288 items is 1 day's worth of data.</param>
+        /// <param name="limit">The amount of items to return. Maximum is 288. Items are in 5 minute increments, meaning 288 items is 1 day's worth of data.</param>
         /// <returns>Returns a <see cref="Device"/> object.</returns>
         Task<IEnumerable<Device>> FetchDeviceDataAsync(string macAddress, string apiKey, string applicationKey, DateTimeOffset? endDate, CancellationToken cancellationToken, int limit = 288);
         
@@ -32,7 +31,7 @@ namespace Weathered.API
         /// <param name="apiKey">Account API Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="endDate">Date for Last Data Entry. Results will end here and cascade backwards through time.</param>
         /// <param name="cancellationToken">Cancellation Token. <see cref="CancellationToken"/></param>
-        /// <param name="limit">The amount of items to return. Default is 288. Items are in 5 minute increments, meaning 288 items is 1 day's worth of data.</param>
+        /// <param name="limit">The amount of items to return. Maximum is 288. Items are in 5 minute increments, meaning 288 items is 1 day's worth of data.</param>
         /// <returns>Returns a JSON string</returns>
         Task<string> FetchDeviceDataAsJsonAsync(string macAddress, string apiKey, string applicationKey, DateTimeOffset? endDate, CancellationToken cancellationToken, int limit = 288);
         
@@ -57,16 +56,18 @@ namespace Weathered.API
 
     public class AmbientWeatherRestService : IAmbientWeatherRestService
     {
-        private readonly HttpClient _client = new HttpClient();
+        private readonly HttpClient _client;
         private Uri BaseAddress { get; set; }
 
         /// <summary>
         /// Creates a new <see cref="AmbientWeatherRestService"/> and initializes the base address for the Ambient Weather API
         /// </summary>
-        public AmbientWeatherRestService()
+        public AmbientWeatherRestService(HttpClient client)
         {
+            _client = client;
+
             // Base Address for the Ambient Weather API
-            BaseAddress = new Uri("https://api.ambientweather.net/");
+            BaseAddress = new Uri("https://api.ambientweather.net/v1/");
         }
 
         /// <inheritdoc cref="FetchDeviceDataAsync"/>
@@ -103,7 +104,7 @@ namespace Weathered.API
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(applicationKey));
 
             // Build our query
-            var path = $"v1/devices/{macAddress}";
+            var path = $"devices/{macAddress}";
             var query = $"?apiKey={apiKey}&applicationKey={applicationKey}";
 
             if (endDate.HasValue)
@@ -146,7 +147,7 @@ namespace Weathered.API
                 throw new ArgumentException("Value cannot be null or whitespace.", nameof(applicationKey));
 
             // Build our query
-            const string path = "v1/devices";
+            const string path = "devices";
             var query = $"?applicationKey={applicationKey}&apiKey={apiKey}";
             
             // Query the Ambient Weather API
@@ -179,6 +180,7 @@ namespace Weathered.API
 
             // Get and return a JSON string from the Ambient Weather API
             var response = await _client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
+
             return await response.Content.ReadAsStringAsync();
         }
     }
