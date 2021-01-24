@@ -12,7 +12,10 @@ using Weathered.API;
 using Weathered.API.Models;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Timers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Weathered.API.Realtime;
 using Weathered.API.Rest;
 using Weathered.Data;
 
@@ -40,6 +43,10 @@ namespace Weathered
         {
             var provider = SetupApplication();
             Log.Verbose("Starting application");
+
+            macAddress = provider.GetService<IOptions<WeatheredConfig>>().Value.MacAddress;
+            apiKey = provider.GetService<IOptions<WeatheredConfig>>().Value.ApiKey;
+            applicationKey = provider.GetService<IOptions<WeatheredConfig>>().Value.ApplicationKey;
 
             if (!queryWeatherStation && string.IsNullOrWhiteSpace(macAddress))
             {
@@ -75,6 +82,21 @@ namespace Weathered
                     applicationKey = Console.ReadLine();
                 }
             }
+
+            var bar = provider.GetService<IAmbientWeatherRealtime>();
+            bar.Timer = new System.Timers.Timer(15000);
+            bar.ApiKeys = new[] {apiKey};
+            bar.ApplicationKey = applicationKey;
+            bar.OnSubscribe += (sender, token) =>
+            {
+                Log.Information(token.Token.ToString());
+            };
+
+            bar.OnDataReceived += (sender, token) =>
+            {
+                Log.Information(token.Token.ToString());
+            };
+            await bar.OpenConnection();
 
             // do the actual work here
             //var bar = serviceProvider.GetService<IAmbientWeatherRestService>();
@@ -141,8 +163,10 @@ namespace Weathered
             
             // setup our DI
             var services = new ServiceCollection()
-                .AddSingleton<IAmbientWeatherRestService, AmbientWeatherRestService>();
-            
+                .Configure<WeatheredConfig>(config)
+                .AddSingleton<IAmbientWeatherRestService, AmbientWeatherRestService>()
+                .AddSingleton<IAmbientWeatherRealtime, AmbientWeatherRealtime>();
+
             // Create our database service context and tell the application to use SQL Server 
             services.AddDbContext<WeatheredContext>(options =>
             {

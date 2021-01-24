@@ -22,8 +22,6 @@ namespace Weathered.Configuration
 
         public Action Configure(Action next)
         {
-            
-            
             if (string.IsNullOrWhiteSpace(_config.DbConnection))
             {
                 Log.Fatal("The DbConnection string was not set - this is fatal! Check the config");
