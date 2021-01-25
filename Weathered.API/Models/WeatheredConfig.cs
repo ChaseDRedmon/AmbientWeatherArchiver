@@ -1,4 +1,6 @@
-﻿namespace Weathered.API.Models
+﻿using System.Collections.Generic;
+
+namespace Weathered.API.Models
 {
     public class WeatheredConfig
     {
@@ -12,10 +14,19 @@
         /// </summary>
         public string SentryIOToken { get; set; }
         
+        /// <summary>
+        /// Weather station MAC Address
+        /// </summary>
         public string MacAddress { get; set; }
         
-        public string ApiKey { get; set; }
+        /// <summary>
+        /// Ambient Weather API Key
+        /// </summary>
+        public List<string> ApiKey { get; set; }
         
+        /// <summary>
+        /// Ambient Weather Application Key
+        /// </summary>
         public string ApplicationKey { get; set; }
     }
 }

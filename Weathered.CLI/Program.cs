@@ -1,20 +1,15 @@
 ﻿#nullable enable
 using System;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
-using Weathered.API;
 using Weathered.API.Models;
-using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.Timers;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Weathered.API.Realtime;
 using Weathered.API.Rest;
 using Weathered.Data;
@@ -41,52 +36,11 @@ namespace Weathered
             long? endEpoch = null,
             string? writeLogsToFile = null)
         {
-            var provider = SetupApplication();
             Log.Verbose("Starting application");
-
-            macAddress = provider.GetService<IOptions<WeatheredConfig>>().Value.MacAddress;
-            apiKey = provider.GetService<IOptions<WeatheredConfig>>().Value.ApiKey;
-            applicationKey = provider.GetService<IOptions<WeatheredConfig>>().Value.ApplicationKey;
-
-            if (!queryWeatherStation && string.IsNullOrWhiteSpace(macAddress))
-            {
-                Log.Warning("MAC Address was not specified.");
-            }
-
-            if (string.IsNullOrWhiteSpace(apiKey))
-            {
-                Log.Warning(new ArgumentException("Value cannot be null or whitespace.", nameof(apiKey)),
-                    "API Key was not specified");
-                
-                Console.WriteLine();
-                
-                while (string.IsNullOrWhiteSpace(apiKey))
-                {
-                    Console.Write("Provide an API Key: ");
-                    apiKey = Console.ReadLine();
-                }
-            }
-            
-            Console.WriteLine();
-
-            if (string.IsNullOrWhiteSpace(applicationKey))
-            {
-                Log.Warning(new ArgumentException("Value cannot be null or whitespace.", nameof(applicationKey)),
-                    "Application Key was not specified");
-                
-                Console.WriteLine();
-                
-                while (string.IsNullOrWhiteSpace(applicationKey))
-                {
-                    Console.Write("Provide an Application Key: ");
-                    applicationKey = Console.ReadLine();
-                }
-            }
+            var provider = SetupApplication();
 
             var bar = provider.GetService<IAmbientWeatherRealtime>();
-            bar.Timer = new System.Timers.Timer(15000);
-            bar.ApiKeys = new[] {apiKey};
-            bar.ApplicationKey = applicationKey;
+            bar.Timer = new Timer(15000);
             bar.OnSubscribe += (sender, token) =>
             {
                 Log.Information(token.Token.ToString());
@@ -97,18 +51,6 @@ namespace Weathered
                 Log.Information(token.Token.ToString());
             };
             await bar.OpenConnection();
-
-            // do the actual work here
-            //var bar = serviceProvider.GetService<IAmbientWeatherRestService>();
-            /* var result = await bar.FetchDeviceDataAsync
-            (
-                "", 
-                "", 
-                "",
-                null,
-                CancellationToken.None,
-                2
-            ); */
 
             Log.Verbose("All done!");
             
@@ -164,15 +106,15 @@ namespace Weathered
             // setup our DI
             var services = new ServiceCollection()
                 .Configure<WeatheredConfig>(config)
-                .AddSingleton<IAmbientWeatherRestService, AmbientWeatherRestService>()
-                .AddSingleton<IAmbientWeatherRealtime, AmbientWeatherRealtime>();
+                .AddTransient<IAmbientWeatherRestService, AmbientWeatherRestService>()
+                .AddTransient<IAmbientWeatherRealtime, AmbientWeatherRealtime>();
 
             // Create our database service context and tell the application to use SQL Server 
             services.AddDbContext<WeatheredContext>(options =>
             {
                 options.UseNpgsql(config.GetValue<string>(nameof(WeatheredConfig.DbConnection)));
             });
-                
+            
             return services.BuildServiceProvider();
         }
     }

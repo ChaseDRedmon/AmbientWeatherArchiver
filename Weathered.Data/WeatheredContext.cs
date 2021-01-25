@@ -4,7 +4,6 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
-using Weathered.API.Models;
 using Weathered.Data.Models.Core;
 using Weathered.Data.Utilities;
 

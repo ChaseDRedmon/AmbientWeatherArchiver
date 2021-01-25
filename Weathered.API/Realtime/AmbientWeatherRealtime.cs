@@ -5,10 +5,13 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
 using SocketIOClient;
+using Weathered.API.Models;
 
 namespace Weathered.API.Realtime
 {
@@ -38,8 +41,6 @@ namespace Weathered.API.Realtime
         /// </summary>
         public event OnSubcribeHandler OnSubscribe;
         
-        public string[] ApiKeys { get; set; }
-        public string ApplicationKey { get; set; }
         public Timer Timer { get; set; }
         public Task OpenConnection();
         public Task StartTimer();
@@ -50,8 +51,6 @@ namespace Weathered.API.Realtime
     {
         private SocketIO Client { get; set; }
         private const string BaseAddress = "https://rt.ambientweather.net";
-        public string[] ApiKeys { get; set; }
-        public string ApplicationKey { get; set; }
         public Timer Timer { get; set; }
 
         /// <inheritdoc cref="OnDataReceivedHandler"/>
@@ -65,19 +64,19 @@ namespace Weathered.API.Realtime
         
         /// <inheritdoc cref="OnSubscribe"/>
         public event IAmbientWeatherRealtime.OnSubcribeHandler OnSubscribe;
-        
+
+        private IOptions<WeatheredConfig> _options { get; }
+
+        public AmbientWeatherRealtime(IOptions<WeatheredConfig> options)
+        {
+            _options = options;
+        }
+
         public async Task OpenConnection()
         {
-            if (string.IsNullOrWhiteSpace(ApplicationKey))
-            {
-                throw new ArgumentNullException(nameof(ApplicationKey), "Application Key cannot be null or whitespace");
-            }
+            var ApiKeys = _options.Value.ApiKey;
+            var ApplicationKey = _options.Value.ApplicationKey;
 
-            if (string.IsNullOrWhiteSpace(ApiKeys[0]))
-            {
-                throw new ArgumentNullException(nameof(ApiKeys), "Api Key cannot be null or whitespace");
-            }
-            
             Client = new SocketIO(BaseAddress, new SocketIOOptions
             {
                 EIO = 4,
@@ -158,6 +157,7 @@ namespace Weathered.API.Realtime
         {
             // Prevent the connection from being closed on us
             // The "ping" event doesn't do anything. I just put it there just because
+            // This timer emulates keep-alive 
             Log.Information("Ping");
             await Client.EmitAsync("ping");
         }
@@ -203,6 +203,6 @@ namespace Weathered.API.Realtime
 
     public class Root
     {
-        public string[] apiKeys { get; set; }
+        public List<string> apiKeys { get; set; }
     }
 }
