@@ -1,13 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Net.WebSockets;
-using System.Text;
 using System.Threading.Tasks;
 using System.Timers;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
 using SocketIOClient;
@@ -41,41 +36,39 @@ namespace Weathered.API.Realtime
         /// </summary>
         public event OnSubcribeHandler OnSubscribe;
         
-        public Timer Timer { get; set; }
         public Task OpenConnection();
-        public Task StartTimer();
-        public Task StopTimer();
     }
 
     public sealed class AmbientWeatherRealtime : IAmbientWeatherRealtime, IDisposable
     {
         private SocketIO Client { get; set; }
-        private const string BaseAddress = "https://rt.ambientweather.net";
-        public Timer Timer { get; set; }
-
-        /// <inheritdoc cref="OnDataReceivedHandler"/>
-        public delegate void OnDataReceivedHandler(object sender, OnDataReceivedEventArgs args);
+        private static Uri BaseAddress { get; } = new Uri("https://dash2.ambientweather.net");
+        private Timer Timer { get; set; }
         
         /// <inheritdoc cref="OnDataReceived"/>
         public event IAmbientWeatherRealtime.OnDataReceivedHandler OnDataReceived;
-
-        /// <inheritdoc cref="OnSubcribeHandler"/>
-        public delegate void OnSubcribeHandler(object sender, OnSubscribeEventArgs token);
         
         /// <inheritdoc cref="OnSubscribe"/>
         public event IAmbientWeatherRealtime.OnSubcribeHandler OnSubscribe;
 
-        private IOptions<WeatheredConfig> _options { get; }
+        private WeatheredConfig _options { get; }
 
+        private readonly ILogger _log;
+
+        public AmbientWeatherRealtime(IOptions<WeatheredConfig> options, ILogger logger): this(options)
+        {
+            _log = logger.ForContext<AmbientWeatherRealtime>();
+        }
+        
         public AmbientWeatherRealtime(IOptions<WeatheredConfig> options)
         {
-            _options = options;
+            _options = options.Value;
         }
 
         public async Task OpenConnection()
         {
-            var ApiKeys = _options.Value.ApiKey;
-            var ApplicationKey = _options.Value.ApplicationKey;
+            var apiKeys = _options.ApiKey;
+            var applicationKey = _options.ApplicationKey;
 
             Client = new SocketIO(BaseAddress, new SocketIOOptions
             {
@@ -83,13 +76,13 @@ namespace Weathered.API.Realtime
                 Query = new Dictionary<string, string>
                 {
                     {"api", "1"},
-                    {"applicationKey", ApplicationKey}
+                    {"applicationKey", applicationKey}
                 }
             });
             
             var keys = new Root
             {
-                apiKeys = ApiKeys
+                apiKeys = apiKeys
             };
 
             Client.On("subscribed", OnInternalSubscribeEvent);
@@ -98,77 +91,50 @@ namespace Weathered.API.Realtime
             Client.OnConnected += OnInternalConnectEvent;
             Client.OnDisconnected += OnInternalDisconnectEvent;
             
-            Log.Information($"Opening websocket connection: {BaseAddress}");
+            _log.Information($"Opening websocket connection: {BaseAddress}");
             await Client.ConnectAsync();
             
-            Log.Information($"Sending connect command: {BaseAddress}");
-            await Client.EmitAsync("connect");
-            
-            Log.Information($"Sending Subcribe Command: {BaseAddress}");
+            _log.Information($"Sending Subcribe Command: {BaseAddress}");
             await Client.EmitAsync("subscribe", keys);
 
+            Timer = new Timer { Interval = 15000 };
             Timer.Elapsed += KeepConnectionAlive;
-            
-            // If the timer is not enabled, set the enabled flag to true and start the timer
-            if (!Timer.Enabled)
-            {
-                Timer.Enabled = true;
-                Timer.Start();
-            }
+            Timer.Start();
 
             await Task.Delay(-1);
         }
 
-        public Task StartTimer()
-        {
-            Timer.Start();
-            return Task.CompletedTask;
-        }
-
-        public Task StopTimer()
-        {
-            Timer.Stop();
-            return Task.CompletedTask;
-        }
-
         private void OnInternalDisconnectEvent(object sender, string e)
         {
-            Log.Information("Disconnected");
+            _log.Information("API Disconnected");
         }
 
         private void OnInternalConnectEvent(object sender, EventArgs e)
         {
-            Log.Information("Connected");
+            _log.Information("Connected to API");
         }
 
         private async void OnInternalSubscribeEvent(SocketIOResponse obj)
         {
-            Log.Information("Subscribed to service");
+            _log.Information("Subscribed to service");
             OnSubscribe?.Invoke(this, new OnSubscribeEventArgs(obj.GetValue()));
         }
 
         private async void OnInternalDataEvent(SocketIOResponse obj)
         {
-            Log.Information("Received data event");
+            _log.Information("Received data event");
             OnDataReceived?.Invoke(this, new OnDataReceivedEventArgs(obj.GetValue()));
         }
 
-        private async void KeepConnectionAlive(Object source, ElapsedEventArgs e)
+        private async void KeepConnectionAlive(object source, ElapsedEventArgs e)
         {
-            // Prevent the connection from being closed on us
-            // The "ping" event doesn't do anything. I just put it there just because
-            // This timer emulates keep-alive 
-            Log.Information("Ping");
+            // This "ping" event emulates a keep-alive message to prevent the API from disconnecting
+            _log.Information("Sending ping keep-alive");
             await Client.EmitAsync("ping");
         }
 
-        public void Dispose()
+        private void ReleaseUnmanagedResources()
         {
-            Timer.Elapsed -= KeepConnectionAlive;
-            
-            Timer.Stop();
-            Timer.Dispose();
-            
             Client.Off("subscribed");
             Client.Off("data");
 
@@ -178,6 +144,29 @@ namespace Weathered.API.Realtime
             // Tell the API we are disconnecting
             Client.EmitAsync("disconnect").Wait();
             Client.DisconnectAsync().Wait();
+        }
+
+        private void Dispose(bool disposing)
+        {
+            ReleaseUnmanagedResources();
+            if (disposing)
+            {
+                Timer.Elapsed -= KeepConnectionAlive;
+            
+                Timer.Stop();
+                Timer.Dispose();
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~AmbientWeatherRealtime()
+        {
+            Dispose(false);
         }
     }
 

@@ -1,18 +1,24 @@
 ﻿#nullable enable
 using System;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
+using Serilog.Configuration;
 using Serilog.Formatting.Compact;
+using Weathered.API;
 using Weathered.API.Models;
 using Weathered.API.Realtime;
 using Weathered.API.Rest;
 using Weathered.Data;
+using Weathered.Helpers;
 
 namespace Weathered
 {
@@ -36,85 +42,57 @@ namespace Weathered
             long? endEpoch = null,
             string? writeLogsToFile = null)
         {
-            Log.Verbose("Starting application");
+            Log.Logger = new LoggerConfiguration()
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .CreateBootstrapLogger();
+            
+            Log.Information("Starting application");
             var provider = SetupApplication();
 
-            var bar = provider.GetService<IAmbientWeatherRealtime>();
-            bar.Timer = new Timer(15000);
-            bar.OnSubscribe += (sender, token) =>
-            {
-                Log.Information(token.Token.ToString());
-            };
+            var service = provider.GetRequiredService<IAmbientWeatherRealtime>();
+            
+            service.OnSubscribe += (sender, token) => Log.Verbose(token.Token.ToString());
+            service.OnDataReceived += (sender, token) => Log.Verbose(token.Token.ToString());
 
-            bar.OnDataReceived += (sender, token) =>
-            {
-                Log.Information(token.Token.ToString());
-            };
-            await bar.OpenConnection();
+            Log.Information("Test");
+            
+            await service.OpenConnection();
 
-            Log.Verbose("All done!");
+            // var a = new AmbientWeatherRestWrapper(macAddress, apiKey, applicationKey);
+            // var result = await a.FetchUserDevicesAsync(CancellationToken.None);
+
+            Log.Information("All done!");
             
             Console.ReadKey();
 
             return 0;
 
-            // Note that the CLI portion doesn't actually do anything 
+            // Note that the CLI portion doesn't actually do anything yet
         }
 
         private static ServiceProvider SetupApplication()
         {
             // Add the connections.json file to the configuration builder
             var config = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
                 .AddJsonFile("connections.json", optional: false, reloadOnChange: true)
                 .Build();
-
-            var loggerConfig = new LoggerConfiguration()
-                .MinimumLevel.Verbose()
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                .Enrich.FromLogContext()
-                .WriteTo.Logger(subLoggerConfig => subLoggerConfig
-                    // .MinimumLevel.Override() is not supported for sub-loggers, even though the docs don't specify this. See https://github.com/serilog/serilog/pull/1033
-                    .Filter.ByExcluding("SourceContext like 'Microsoft.%' and @Level in ['Information', 'Debug', 'Verbose']")
-                    .WriteTo.Console(
-                        restrictedToMinimumLevel: LogEventLevel.Verbose,
-                        outputTemplate: "[{Level:u3}] {Message:lj} <{ThreadId}>{NewLine}{Exception}"))
-                    .WriteTo.Async(x => x.File(
-                        Path.Combine("logs", "{Date}.log"), 
-                        restrictedToMinimumLevel: LogEventLevel.Warning,
-                        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj} <{ThreadId}>{NewLine}{Exception}", 
-                        rollingInterval: RollingInterval.Day))
-                .WriteTo.File(
-                    new RenderedCompactJsonFormatter(),
-                    Path.Combine("logs", "{Date}.clef"),
-                    rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: 14);
-
-            // Find our SentryIO token from the connections.json file
-            var sentryIoToken = config.GetValue<string>(nameof(WeatheredConfig.SentryIOToken));
-
-            // Pass that value to our Sentry sink
-            if (!string.IsNullOrWhiteSpace(sentryIoToken))
-            {
-                // Write Warnings and Errors to our SentryIO Sink
-                loggerConfig.WriteTo.Async(
-                    x => x.Sentry(sentryIoToken, restrictedToMinimumLevel: LogEventLevel.Warning));
-            }
-            
-            // Create our Serilog logger
-            Log.Logger = loggerConfig.CreateLogger();
             
             // setup our DI
             var services = new ServiceCollection()
                 .Configure<WeatheredConfig>(config)
-                .AddTransient<IAmbientWeatherRestService, AmbientWeatherRestService>()
-                .AddTransient<IAmbientWeatherRealtime, AmbientWeatherRealtime>();
+                .AddTransient<IAmbientWeatherRestWrapper, AmbientWeatherRestWrapper>()
+                .AddTransient<IAmbientWeatherRealtime, AmbientWeatherRealtime>()
+                .AddTransient<IAmbientWeather, AmbientWeather>()
+                .AddSerilogServices(config);
 
             // Create our database service context and tell the application to use SQL Server 
             services.AddDbContext<WeatheredContext>(options =>
             {
                 options.UseNpgsql(config.GetValue<string>(nameof(WeatheredConfig.DbConnection)));
             });
-            
+
             return services.BuildServiceProvider();
         }
     }

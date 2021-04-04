@@ -9,4 +9,9 @@
       <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="9.0.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Weathered.API\Weathered.API.csproj" />
+      <ProjectReference Include="..\Weathered.Data\Weathered.Data.csproj" />
+    </ItemGroup>
+
 </Project>

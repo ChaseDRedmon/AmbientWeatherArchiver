@@ -165,12 +165,13 @@ namespace Weathered.API.Models.Realtime
         /// Last Date recorded where <see cref="HourlyRainfall"/> > 0 inches
         /// </summary>
         [JsonProperty("lastRain")]
-        public DateTimeOffset LastRain { get; set; }
+        public DateTimeOffset? LastRain { get; set; }
         
         /// <summary>
         /// I have no idea. ¯\_(ツ)_/¯
         /// </summary>
-        public string deviceId { get; set; }
+        [JsonProperty("deviceId")]
+        public string? deviceId { get; set; }
         
         /// <summary>
         /// IANA TimeZone

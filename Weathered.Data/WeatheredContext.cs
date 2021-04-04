@@ -24,7 +24,6 @@ namespace Weathered.Data
         /// Array of DbSet entities that allow interactions with each data context, and, ultimately database table manipulation
         /// </summary>
         public DbSet<Device> Devices { get; set; }
-        
         public DbSet<UserDevice> UserDevices { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
