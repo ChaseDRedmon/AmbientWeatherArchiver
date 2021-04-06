@@ -155,6 +155,7 @@ namespace Weathered.API.Realtime
 
         private async void KeepConnectionAlive(object source, ElapsedEventArgs e)
         {
+            // BUG: This throws an NRE if the ambient weather service drops the connection, when the timer elapses.
             // This "ping" event emulates a keep-alive message to prevent the API from disconnecting
             _log.Information("Sending ping keep-alive");
             await Client.EmitAsync("ping");
