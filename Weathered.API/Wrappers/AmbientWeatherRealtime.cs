@@ -3,10 +3,13 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Timers;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Serilog;
 using SocketIOClient;
 using Weathered.API.Models;
+// using Weathered.API.Models.Realtime;
+using Weathered.API.Models.Rest;
 
 namespace Weathered.API.Realtime
 {
@@ -20,7 +23,7 @@ namespace Weathered.API.Realtime
         public delegate void OnDataReceivedHandler(object sender, OnDataReceivedEventArgs token);
         
         /// <summary>
-        /// The OnDataReceived Event fires when it receives an update from the Ambient Weather API
+        /// The OnDataReceived Event fires when it receives an event from the Ambient Weather API
         /// </summary>
         public event OnDataReceivedHandler OnDataReceived;
         
@@ -36,7 +39,18 @@ namespace Weathered.API.Realtime
         /// </summary>
         public event OnSubcribeHandler OnSubscribe;
         
+        /// <summary>
+        /// Opens a connection and subscribes to the Ambient Weather service
+        /// </summary>
+        /// <returns></returns>
         public Task OpenConnection();
+        
+        /// <summary>
+        /// Unsubscribes from the ambient weather service
+        /// This is useful for retrieving a list of invalid API keys, without closing the websocket connection or destroying this instance.
+        /// </summary>
+        /// <returns></returns>
+        public Task Unsubscribe();
     }
 
     public sealed class AmbientWeatherRealtime : IAmbientWeatherRealtime, IDisposable
@@ -51,7 +65,7 @@ namespace Weathered.API.Realtime
         /// <inheritdoc cref="OnSubscribe"/>
         public event IAmbientWeatherRealtime.OnSubcribeHandler OnSubscribe;
 
-        private WeatheredConfig _options { get; }
+        private WeatheredConfig Options { get; }
 
         private readonly ILogger _log;
 
@@ -62,14 +76,14 @@ namespace Weathered.API.Realtime
         
         public AmbientWeatherRealtime(IOptions<WeatheredConfig> options)
         {
-            _options = options.Value;
+            Options = options.Value;
         }
 
         public async Task OpenConnection()
         {
-            var apiKeys = _options.ApiKey;
-            var applicationKey = _options.ApplicationKey;
-
+            var apiKeys = Options.ApiKey;
+            var applicationKey = Options.ApplicationKey;
+            
             Client = new SocketIO(BaseAddress, new SocketIOOptions
             {
                 EIO = 4,
@@ -77,7 +91,10 @@ namespace Weathered.API.Realtime
                 {
                     {"api", "1"},
                     {"applicationKey", applicationKey}
-                }
+                },
+                Reconnection = true,
+                ReconnectionDelay = 5000, // reconnect after 5 seconds
+                ReconnectionDelayMax = 30000
             });
             
             var keys = new Root
@@ -97,11 +114,17 @@ namespace Weathered.API.Realtime
             _log.Information($"Sending Subcribe Command: {BaseAddress}");
             await Client.EmitAsync("subscribe", keys);
 
-            Timer = new Timer { Interval = 15000 };
+            Timer = new Timer { Interval = 10000 };
             Timer.Elapsed += KeepConnectionAlive;
             Timer.Start();
 
             await Task.Delay(-1);
+        }
+
+        public async Task Unsubscribe()
+        {
+            _log.Information("Unsubscribing from the ambient weather websocket service");
+            await Client.EmitAsync("unsubscribe");
         }
 
         private void OnInternalDisconnectEvent(object sender, string e)
@@ -114,16 +137,20 @@ namespace Weathered.API.Realtime
             _log.Information("Connected to API");
         }
 
-        private async void OnInternalSubscribeEvent(SocketIOResponse obj)
+        private void OnInternalSubscribeEvent(SocketIOResponse obj)
         {
             _log.Information("Subscribed to service");
-            OnSubscribe?.Invoke(this, new OnSubscribeEventArgs(obj.GetValue()));
+
+            var x = obj.GetValue().ToObject<UserDevice>();
+            OnSubscribe?.Invoke(this, new OnSubscribeEventArgs(x));
         }
 
-        private async void OnInternalDataEvent(SocketIOResponse obj)
+        private void OnInternalDataEvent(SocketIOResponse obj)
         {
             _log.Information("Received data event");
-            OnDataReceived?.Invoke(this, new OnDataReceivedEventArgs(obj.GetValue()));
+
+            var x = obj.GetValue().ToObject<Device>();
+            OnDataReceived?.Invoke(this, new OnDataReceivedEventArgs(x));
         }
 
         private async void KeepConnectionAlive(object source, ElapsedEventArgs e)
@@ -169,25 +196,25 @@ namespace Weathered.API.Realtime
             Dispose(false);
         }
     }
-
+    
     public class OnDataReceivedEventArgs
     {
-        public OnDataReceivedEventArgs(JToken token)
+        public OnDataReceivedEventArgs(Device device)
         {
-            Token = token;
+            Device = device;
         }
         
-        public JToken Token { get; }
+        public Device Device { get; }
     }
     
     public class OnSubscribeEventArgs
     {
-        public OnSubscribeEventArgs(JToken token)
+        public OnSubscribeEventArgs(UserDevice userDevice)
         {
-            Token = token;
+            UserDevice = userDevice;
         }
         
-        public JToken Token { get; }
+        public UserDevice UserDevice { get; }
     }
 
     public class Root

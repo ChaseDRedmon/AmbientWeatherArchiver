@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Weathered.API.Models.Rest;
 using Weathered.API.Rest;
-using Weathered.API.Helpers;
 using Serilog;
 
 namespace Weathered.API

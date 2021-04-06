@@ -793,6 +793,14 @@ namespace Weathered.API.Models.Rest
         /// </summary>
         [JsonProperty("dewPoint10")]
         public double? DewPointFahrenheit10 { get; set; }
+        
+        /// <summary>
+        /// Weather Station Mac Address
+        /// This value is always null when querying the REST API
+        /// This value is always populated when receiving events from the Websocket (Realtime) API
+        /// </summary>
+        [JsonProperty("macAddress")]
+        public string? MacAddress { get; set; }
     }
 }
 

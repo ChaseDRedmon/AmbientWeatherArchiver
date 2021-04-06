@@ -1,9 +1,19 @@
 ﻿using System.Collections.Generic;
 
-namespace Weathered.API.Models
+namespace Weathered.Models
 {
-    public class WeatheredConfig
+    public class Credentials
     {
+        /// <summary>
+        /// Database Connection String
+        /// </summary>
+        public string DbConnection { get; set; }
+        
+        /// <summary>
+        /// Sentry.IO DSN String. See Sentry.IO Client Keys DSN connection strings.
+        /// </summary>
+        public string SentryIOToken { get; set; }
+        
         /// <summary>
         /// Weather Station MAC Address. Found Here: https://ambientweather.net/devices
         /// </summary>

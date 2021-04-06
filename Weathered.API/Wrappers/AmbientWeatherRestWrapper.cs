@@ -5,24 +5,34 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using Serilog;
+using Weathered.API.Models;
 using Weathered.API.Models.Rest;
 
 namespace Weathered.API.Rest
 {
     public interface IAmbientWeatherRestWrapper
     {
+        /// <summary>
+        /// Weather Stations MAC Address. Found Here: https://ambientweather.net/devices
+        /// </summary>
         string MacAddress { get; set; }
+        
+        /// <summary>
+        /// Account API Key. Found Here: https://ambientweather.net/account
+        /// </summary>
         string ApiKey { get; set; }
+        
+        /// <summary>
+        /// Account Application Key. Found Here: https://ambientweather.net/account
+        /// </summary>
         string ApplicationKey { get; set; }
 
         /// <summary>
         ///     Fetch Recorded Weather Data based on a Weather Station's MAC Address from the Ambient Weather API
         /// </summary>
-        /// <param name="macAddress">Weather Stations MAC Address. Found Here: https://ambientweather.net/devices</param>
-        /// <param name="applicationKey">Account Application Key. Found Here: https://ambientweather.net/account</param>
-        /// <param name="apiKey">Account API Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="endDate">Date for Last Data Entry. Results will end here and cascade backwards through time.</param>
         /// <param name="cancellationToken">Cancellation Token. <see cref="CancellationToken" /></param>
         /// <param name="limit">
@@ -35,9 +45,6 @@ namespace Weathered.API.Rest
         /// <summary>
         ///     Fetch Recorded Weather Data based on a Weather Station's MAC Address from the Ambient Weather API
         /// </summary>
-        /// <param name="macAddress">Weather Stations MAC Address. Found Here: https://ambientweather.net/devices</param>
-        /// <param name="applicationKey">Account Application Key. Found Here: https://ambientweather.net/account</param>
-        /// <param name="apiKey">Account API Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="endDate">Date for Last Data Entry. Results will end here and cascade backwards through time.</param>
         /// <param name="cancellationToken">Cancellation Token. <see cref="CancellationToken" /></param>
         /// <param name="limit">
@@ -50,8 +57,6 @@ namespace Weathered.API.Rest
         /// <summary>
         ///     Fetch a list of devices under the user's account and the most recent weather data for each device
         /// </summary>
-        /// <param name="applicationKey">Account Application Key. Found Here: https://ambientweather.net/account</param>
-        /// <param name="apiKey">Account API Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="cancellationToken">Cancellation Token. <see cref="CancellationToken" /></param>
         /// <returns>Returns a <see cref="Device" /> object.</returns>
         Task<IEnumerable<UserDevice>> FetchUserDevicesAsync(CancellationToken cancellationToken);
@@ -59,18 +64,17 @@ namespace Weathered.API.Rest
         /// <summary>
         ///     Fetch a list of devices under the user's account and the most recent weather data for each device
         /// </summary>
-        /// <param name="applicationKey">Account Application Key. Found Here: https://ambientweather.net/account</param>
-        /// <param name="apiKey">Account API Key. Found Here: https://ambientweather.net/account</param>
         /// <param name="cancellationToken">Cancellation Token. <see cref="CancellationToken" /></param>
         /// <returns>Returns a JSON string</returns>
         Task<string> FetchUserDevicesAsJsonAsync(CancellationToken cancellationToken);
 
         /// <summary>
-        /// 
+        /// Checks to see if there is data for the specified day
         /// </summary>
+        /// <param name="dateToCheck">The date to check to see if we have data for</param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        Task<bool> DoesDeviceDataExist(DateTimeOffset? endDate, CancellationToken cancellationToken);
+        Task<bool> DoesDeviceDataExist(DateTimeOffset? dateToCheck, CancellationToken cancellationToken);
     }
 
     public class AmbientWeatherRestWrapper : IAmbientWeatherRestWrapper
@@ -79,7 +83,7 @@ namespace Weathered.API.Rest
 
         private static Uri BaseAddress { get; } = new Uri("https://api.ambientweather.net/");
 
-        private readonly ILogger _log;
+        private readonly ILogger? _log;
 
         /// <summary>
         ///     Creates a new <see cref="AmbientWeatherRestWrapper" /> and initializes the base address for the Ambient Weather API
@@ -176,9 +180,9 @@ namespace Weathered.API.Rest
             return json;
         }
         
-        public async Task<bool> DoesDeviceDataExist(DateTimeOffset? endDate, CancellationToken cancellationToken)
+        public async Task<bool> DoesDeviceDataExist(DateTimeOffset? dateToCheck, CancellationToken cancellationToken)
         {
-            var json = await FetchDeviceDataAsJsonAsync(endDate, cancellationToken, 1);
+            var json = await FetchDeviceDataAsJsonAsync(dateToCheck, cancellationToken, 1);
 
             // The Ambient Weather API returns HTTP 200 and an empty JSON Array when data does not exist for a given day.
             return json.Length != 2;

@@ -19,6 +19,7 @@ using Weathered.API.Realtime;
 using Weathered.API.Rest;
 using Weathered.Data;
 using Weathered.Helpers;
+using Weathered.Models;
 
 namespace Weathered
 {
@@ -52,8 +53,12 @@ namespace Weathered
 
             var service = provider.GetRequiredService<IAmbientWeatherRealtime>();
             
-            service.OnSubscribe += (sender, token) => Log.Verbose(token.Token.ToString());
-            service.OnDataReceived += (sender, token) => Log.Verbose(token.Token.ToString());
+            service.OnSubscribe += (sender, token) => Log.Verbose(token.UserDevice.Info.Name);
+            service.OnDataReceived += (sender, token) =>
+            {
+                Log.Verbose(token.Device.EpochMilliseconds?.ToString());
+            };
+            
 
             Log.Information("Test");
             
@@ -81,7 +86,7 @@ namespace Weathered
             
             // setup our DI
             var services = new ServiceCollection()
-                .Configure<WeatheredConfig>(config)
+                .Configure<Credentials>(config)
                 .AddTransient<IAmbientWeatherRestWrapper, AmbientWeatherRestWrapper>()
                 .AddTransient<IAmbientWeatherRealtime, AmbientWeatherRealtime>()
                 .AddTransient<IAmbientWeather, AmbientWeather>()
@@ -90,7 +95,7 @@ namespace Weathered
             // Create our database service context and tell the application to use SQL Server 
             services.AddDbContext<WeatheredContext>(options =>
             {
-                options.UseNpgsql(config.GetValue<string>(nameof(WeatheredConfig.DbConnection)));
+                options.UseNpgsql(config.GetValue<string>(nameof(Credentials.DbConnection)));
             });
 
             return services.BuildServiceProvider();
