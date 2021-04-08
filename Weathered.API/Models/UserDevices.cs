@@ -9,14 +9,16 @@ namespace Weathered.API.Models.Rest
         /// <summary>
         /// The Type of Geo Coordinates. i.e. "Point"
         /// </summary>
-        public string type { get; set; }
+        [JsonProperty("type")]
+        public string Type { get; set; }
         
         /// <summary>
         /// A list of doubles containing the lat/lon coordinates
         /// coordinates[0] is longitude
         /// coordinates[1] is latitude
         /// </summary>
-        public List<double> coordinates { get; set; }
+        [JsonProperty("coordinates")]
+        public List<double> Coordinates { get; set; }
     }
     
     public class Coords2
@@ -63,7 +65,7 @@ namespace Weathered.API.Models.Rest
         /// Geographic coordinates of the station
         /// </summary>
         [JsonProperty("geo")]
-        public Geo geo { get; set; }
+        public Geo Geo { get; set; }
     }
     
     // Root myDeserializedClass = JsonSerializer.Deserialize<UserDevice>(myJsonResponse);
@@ -79,7 +81,7 @@ namespace Weathered.API.Models.Rest
         /// City Location
         /// </summary>
         [JsonProperty("coords")]
-        public Coords coords { get; set; }
+        public Coords Coords { get; set; }
     }
 
     public class UserDevice
@@ -115,7 +117,7 @@ namespace Weathered.API.Models.Rest
         /// List of devices belonging to the user
         /// </summary>
         [JsonProperty("devices")]
-        public List<UserDevice> devices { get; set; }
+        public List<UserDevice> Devices { get; set; }
         
         /// <summary>
         /// List of invalid API keys
@@ -128,6 +130,6 @@ namespace Weathered.API.Models.Rest
         /// The returned event type
         /// </summary>
         [JsonProperty("method")]
-        public string method { get; set; }
+        public string Method { get; set; }
     }
 }

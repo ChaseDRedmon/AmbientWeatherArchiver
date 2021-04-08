@@ -1,0 +1,7 @@
+﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=4d32fdeb_002D44fc_002D4bc8_002D8273_002D3a37b20cd271/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Invalid_Ambient_Weather_Date_Query_Should_Return_False" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;TestAncestor&gt;&#xD;
+    &lt;TestId&gt;NUnit3x::A484DD83-0652-42CE-A9D8-2A47DAA0DA0E::net5.0::Weathered.API.Tests.RestIntegrationTests.Invalid_Ambient_Weather_Date_Query_Should_Return_False&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;NUnit3x::A484DD83-0652-42CE-A9D8-2A47DAA0DA0E::net5.0::Weathered.API.Tests.RestIntegrationTests.Null_Arguments_Throw_Argument_Exception&lt;/TestId&gt;&#xD;
+  &lt;/TestAncestor&gt;&#xD;
+&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

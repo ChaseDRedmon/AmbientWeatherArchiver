@@ -218,7 +218,7 @@ namespace Weathered.API.Rest
 
             // Get and return a JSON string from the Ambient Weather API
             var response = await Client.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
-
+            
             return await response.Content.ReadAsStringAsync();
         }
     }

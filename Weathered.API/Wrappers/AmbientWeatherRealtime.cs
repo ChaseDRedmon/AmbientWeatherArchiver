@@ -130,11 +130,17 @@ namespace Weathered.API.Realtime
         private void OnInternalDisconnectEvent(object sender, string e)
         {
             _log.Information("API Disconnected");
+            Timer.Stop();
         }
 
         private void OnInternalConnectEvent(object sender, EventArgs e)
         {
             _log.Information("Connected to API");
+
+            if (!Timer.Enabled)
+            {
+                Timer.Start();
+            }
         }
 
         private void OnInternalSubscribeEvent(SocketIOResponse obj)
@@ -155,7 +161,6 @@ namespace Weathered.API.Realtime
 
         private async void KeepConnectionAlive(object source, ElapsedEventArgs e)
         {
-            // BUG: This throws an NRE if the ambient weather service drops the connection, when the timer elapses.
             // This "ping" event emulates a keep-alive message to prevent the API from disconnecting
             _log.Information("Sending ping keep-alive");
             await Client.EmitAsync("ping");
