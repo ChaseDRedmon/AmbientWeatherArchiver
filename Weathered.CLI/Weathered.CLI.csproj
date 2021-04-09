@@ -9,6 +9,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Weathered.API\Weathered.API.csproj" />
       <ProjectReference Include="..\Weathered.Data\Weathered.Data.csproj" />
+      <ProjectReference Include="..\Weathered.Services\Weathered.Services.csproj" />
     </ItemGroup>
 
     <ItemGroup>

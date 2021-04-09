@@ -20,6 +20,7 @@ using Weathered.API.Rest;
 using Weathered.Data;
 using Weathered.Helpers;
 using Weathered.Models;
+using Weathered.Services;
 
 namespace Weathered
 {
@@ -33,15 +34,7 @@ namespace Weathered
         /// <param name="endEpoch"></param>
         /// <param name="writeLogsToFile">Path to write application logs to a file</param>
         /// <param name="endDate"></param>
-        public static async Task<int> Main(
-            bool queryWeatherStation = false, 
-            bool queryUsersAccount = false, 
-            string? macAddress = null, 
-            string? apiKey = null, 
-            string? applicationKey = null,
-            DateTimeOffset? endDate = null,
-            long? endEpoch = null,
-            string? writeLogsToFile = null)
+        public static async Task<int> Main()
         {
             Log.Logger = new LoggerConfiguration()
                 .Enrich.FromLogContext()
@@ -50,24 +43,12 @@ namespace Weathered
             
             Log.Information("Starting application");
             var provider = SetupApplication();
-
-            var service = provider.GetRequiredService<IAmbientWeatherRealtime>();
             
-            service.OnSubscribe += (sender, token) => Log.Verbose(token.UserDevice.Info.Name);
-            service.OnDataReceived += (sender, token) =>
-            {
-                Log.Verbose(token.Device.EpochMilliseconds?.ToString());
-            };
-            
+            Log.Information("Starting to collect data from weather service.");
+            var service = provider.GetRequiredService<IWeatherService>();
+            var result = await service.WriteDeviceHistoryToDatabase();
 
-            Log.Information("Test");
-            
-            await service.OpenConnection();
-
-            // var a = new AmbientWeatherRestWrapper(macAddress, apiKey, applicationKey);
-            // var result = await a.FetchUserDevicesAsync(CancellationToken.None);
-
-            Log.Information("All done!");
+            Log.Information("Finished writing information to database");
             
             Console.ReadKey();
 
@@ -90,6 +71,7 @@ namespace Weathered
                 .AddTransient<IAmbientWeatherRestWrapper, AmbientWeatherRestWrapper>()
                 .AddTransient<IAmbientWeatherRealtime, AmbientWeatherRealtime>()
                 .AddTransient<IAmbientWeather, AmbientWeather>()
+                .AddTransient<IWeatherService, WeatherService>()
                 .AddSerilogServices(config);
 
             // Create our database service context and tell the application to use SQL Server 
